@@ -11,8 +11,7 @@ import kotlinx.coroutines.withContext
 
 internal class DefaultDataStore : DataStore {
     @Suppress("UNCHECKED_CAST")
-    private val provider: CacheProvider
-        get() = CacheProvider(
+    private val provider = CacheProvider(
             persistence = StorageProviderManager.getStorageProvider()
         )
 

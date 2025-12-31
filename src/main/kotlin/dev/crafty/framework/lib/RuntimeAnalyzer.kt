@@ -4,29 +4,25 @@ import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 
 internal object RuntimeAnalyzer {
+    private const val LIBRARY_PLUGIN_NAME = "Framework"
+
     fun findCallingPlugin(): JavaPlugin? {
-        println("Finding calling plugin")
         val stackTrace = Thread.currentThread().stackTrace
-        for (i in 2..<stackTrace.size) {
+        for (i in 2 until stackTrace.size) {
             try {
                 val callingClass = Class.forName(stackTrace[i].className)
-                val classLoader = callingClass.getClassLoader()
-                println("Checking class loader $classLoader")
-                if (classLoader != null &&
-                    classLoader.toString().contains("PluginClassLoader") && !classLoader.toString()
-                        .contains("Framework")
-                ) {
+                val classLoader = callingClass.classLoader
+
+                if (classLoader != null && classLoader.toString().contains("PluginClassLoader")) {
                     val pluginName = extractPluginName(classLoader.toString())
-                    if (pluginName != null) {
-                        println("Found calling plugin $pluginName")
-                        return Bukkit.getPluginManager().getPlugin(pluginName) as? JavaPlugin
+                    val baseName = pluginName?.substringBefore(" ")
+                    if (baseName != null && baseName != LIBRARY_PLUGIN_NAME) {
+                        return Bukkit.getPluginManager().getPlugin(baseName) as? JavaPlugin
                     }
                 }
-            } catch (ignored: ClassNotFoundException) {
-            }
+            } catch (ignored: ClassNotFoundException) {}
         }
 
-        println("Could not find calling plugin")
         return null
     }
 

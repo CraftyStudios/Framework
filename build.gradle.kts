@@ -37,6 +37,9 @@ dependencies {
     ksp("dev.s7a:ktConfig-ksp:2.0.0-SNAPSHOT")
 
     implementation("com.esotericsoftware.kryo:kryo5:5.6.2")
+
+    // db drivers
+    implementation("org.postgresql:postgresql:42.7.7")
 }
 
 tasks {
@@ -66,12 +69,18 @@ tasks.processResources {
     }
 }
 
+val sourcesJar by tasks.registering(Jar::class) {
+    archiveClassifier.set("sources")
+    from(sourceSets.main.get().allSource)
+}
+
 publishing {
     publications {
         create<MavenPublication>("mavenLocal") {
             artifact(tasks.named("shadowJar")) {
                 builtBy(tasks.named("shadowJar"))
             }
+            artifact(sourcesJar)
 
             groupId = project.group.toString()
             artifactId = project.name

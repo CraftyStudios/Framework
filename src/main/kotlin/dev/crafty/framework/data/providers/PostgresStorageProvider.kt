@@ -9,21 +9,23 @@ import com.zaxxer.hikari.HikariDataSource
 import dev.crafty.framework.api.data.DataKey
 import dev.crafty.framework.api.data.StorageProvider
 import dev.crafty.framework.api.logs.Logger
-import dev.crafty.framework.data.PostgresConfig
-import org.bukkit.inventory.ItemStack
+import dev.crafty.framework.data.DataConfig
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
-internal class PostgresStorageProvider : StorageProvider<PostgresConfig>, KoinComponent {
+internal class PostgresStorageProvider : StorageProvider, KoinComponent {
     private val logger: Logger by inject()
+    private val config: DataConfig by inject()
 
-    private lateinit var ds: HikariDataSource
-    private lateinit var kryo: Kryo
+    private var ds: HikariDataSource
+    private var kryo: Kryo
 
-    override fun setup(config: PostgresConfig) {
+    init {
         logger.debug("Setting up Postgres storage provider")
         val hikariConfig = HikariConfig().apply {
-            jdbcUrl = config.toJdbcUrl()
+            jdbcUrl = config.postgres.toJdbcUrl()
+            username = config.postgres.username
+            password = config.postgres.password
         }
 
         ds = HikariDataSource(hikariConfig)

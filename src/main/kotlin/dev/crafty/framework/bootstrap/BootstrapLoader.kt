@@ -68,6 +68,6 @@ internal object BootstrapLoader {
             loader.save(file, instance)
         }
 
-        return loader.load(YamlConfiguration.loadConfiguration(file))
+        return loader.load(file)
     }
 }

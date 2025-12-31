@@ -9,12 +9,12 @@ internal object StorageProviderManager : KoinComponent {
 
     private val dataConfig: DataConfig by inject()
 
-    private val provider: StorageProvider<*> by lazy {
+    private val provider: StorageProvider by lazy {
         when (dataConfig.provider) {
             StorageProviderType.POSTGRES -> PostgresStorageProvider()
         }
         PostgresStorageProvider()
     }
 
-    fun getStorageProvider(): StorageProvider<*> = provider
+    fun getStorageProvider(): StorageProvider = provider
 }

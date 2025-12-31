@@ -36,4 +36,11 @@ interface I18n {
      * @param placeholders Optional placeholders to replace in the message.
      */
     fun broadcast(key: I18nKey, vararg placeholders: Pair<String, Any>)
+
+    /**
+     * Retrieves the raw translated message as a Component without any placeholders replaced.
+     * Does not include the prefix.
+     * @param key The i18n key representing the message.
+     */
+    fun getRaw(key: I18nKey): Component
 }

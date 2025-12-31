@@ -2,6 +2,7 @@ package dev.crafty.framework.i18n
 
 import dev.crafty.framework.api.i18n.I18n
 import dev.crafty.framework.api.i18n.I18nKey
+import dev.crafty.framework.api.logs.Logger
 import dev.crafty.framework.lib.RuntimeAnalyzer
 import dev.crafty.framework.lib.colorize
 import dev.crafty.framework.lib.plus
@@ -11,8 +12,12 @@ import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
 import org.bukkit.plugin.java.JavaPlugin
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
-internal class I18nProvider : I18n {
+internal class I18nProvider : I18n, KoinComponent {
+    private val logger: Logger by inject()
+
     private val prefixes: MutableMap<JavaPlugin, Component> = mutableMapOf()
 
     override fun setPluginPrefix(prefix: Component) {
@@ -76,18 +81,30 @@ internal class I18nProvider : I18n {
         }
     }
 
+    override fun getRaw(key: I18nKey): Component {
+        return RuntimeAnalyzer.findCallingPlugin()?.let { plugin ->
+            val config = getLangConfig(plugin)
+            val rawMessage = config.getString(key.path) ?: run {
+                throw IllegalArgumentException("No translation found for key '$key.path' in plugin '${plugin.name}'")
+            }
+            rawMessage.colorize()
+        } ?: run {
+            throw IllegalStateException("Could not determine calling plugin for getting raw i18n message.")
+        }
+    }
+
     private fun getMessage(
         config: FileConfiguration,
         key: I18nKey,
         placeholders: Map<String, Any>,
         plugin: JavaPlugin
     ): Component {
-        val rawMessage = config.getString(key.path) ?: run {
+        var rawMessage = config.getString(key.path) ?: run {
             throw IllegalArgumentException("No translation found for key '$key.path' in plugin '${plugin.name}'")
         }
 
         placeholders.forEach { (key, value) ->
-            rawMessage.replace("{$key}", value.toString())
+            rawMessage = rawMessage.replace("{$key}", value.toString())
         }
 
         val prefix = prefixes[plugin]

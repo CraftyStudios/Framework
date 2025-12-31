@@ -3,13 +3,7 @@ package dev.crafty.framework.api.data
 /**
  * Interface for a storage provider that can store and retrieve data using keys.
  */
-internal interface StorageProvider<C> {
-    /**
-     * Sets up the storage provider with the given configuration.
-     * @param config The configuration for the provider.
-     */
-    fun setup(config: C)
-
+internal interface StorageProvider {
     /**
      * Shuts down the storage provider.
      */

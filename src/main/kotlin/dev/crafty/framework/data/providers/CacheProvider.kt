@@ -5,26 +5,21 @@ import com.github.benmanes.caffeine.cache.Caffeine
 import dev.crafty.framework.api.data.DataKey
 import dev.crafty.framework.api.data.StorageProvider
 import dev.crafty.framework.api.logs.Logger
-import dev.crafty.framework.data.CacheConfig
+import dev.crafty.framework.data.DataConfig
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.time.Duration
 
 internal class CacheProvider(
-    private val persistence: StorageProvider<*>
-) : StorageProvider<CacheConfig>, KoinComponent {
+    private val persistence: StorageProvider
+) : StorageProvider, KoinComponent {
     private val logger: Logger by inject()
+    private val config: DataConfig by inject()
 
-    private lateinit var cache: Cache<DataKey<*>, Any>
-
-    override fun setup(config: CacheConfig) {
-        cache = Caffeine.newBuilder()
-            .maximumSize(config.maxSize)
-            .expireAfterAccess(Duration.ofSeconds(config.expirationSeconds))
-            .build()
-
-        logger.debug("Cache setup")
-    }
+    private var cache: Cache<String, Any> = Caffeine.newBuilder()
+        .maximumSize(config.cache.maxSize)
+        .expireAfterAccess(Duration.ofSeconds(config.cache.expirationSeconds))
+        .build()
 
     override fun shutdown() {
         logger.debug("Cache shutdown, invalidating all entries")
@@ -34,7 +29,7 @@ internal class CacheProvider(
     override fun <T : Any> get(key: DataKey<T>): T? {
         // try to hit cache first
         @Suppress("UNCHECKED_CAST")
-        val cachedValue = cache.getIfPresent(key) as T?
+        val cachedValue = cache.getIfPresent(key.name) as T?
         if (cachedValue != null) {
             logger.debug("Cache hit for key: $key")
             return cachedValue
@@ -44,7 +39,7 @@ internal class CacheProvider(
 
             // hit; store in cache
             if (persistedValue != null) {
-                cache.put(key, persistedValue as Any)
+                cache.put(key.name, persistedValue as Any)
             }
 
             return persistedValue
@@ -58,7 +53,7 @@ internal class CacheProvider(
         persistence.set(key, value)
 
         // update cache
-        cache.put(key, value as Any)
+        cache.put(key.name, value as Any)
     }
 
     override fun <T : Any> remove(key: DataKey<T>) {
@@ -68,6 +63,6 @@ internal class CacheProvider(
         persistence.remove(key)
 
         // invalidate cache
-        cache.invalidate(key)
+        cache.invalidate(key.name)
     }
 }
