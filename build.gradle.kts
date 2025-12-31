@@ -76,9 +76,9 @@ publishing {
                 builtBy(tasks.named("shadowJar"))
             }
 
-            groupId = project.group.toString()
-            artifactId = project.name
-            version = project.version.toString()
+            groupId = project.group.toString().replace(" ", "-")
+            artifactId = project.name.toLowerCase().replace(" ", "-")
+            version = project.version.toString().replace(" ", "-")
         }
     }
 
