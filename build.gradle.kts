@@ -93,9 +93,9 @@ publishing {
 
             artifact(sourcesJar)
 
-            groupId = project.group.toString()
-            artifactId = project.name
-            version = project.version.toString()
+            groupId = project.group.toString().replace(" ", "-")
+            artifactId = project.name.lowercase().replace(" ", "-")
+            version = project.version.toString().replace(" ", "-")
         }
 
         create<MavenPublication>("gpr") {
@@ -104,7 +104,7 @@ publishing {
             }
 
             groupId = project.group.toString().replace(" ", "-")
-            artifactId = project.name.toLowerCase().replace(" ", "-")
+            artifactId = project.name.lowercase().replace(" ", "-")
             version = project.version.toString().replace(" ", "-")
         }
     }
