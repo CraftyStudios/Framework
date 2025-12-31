@@ -86,7 +86,7 @@ publishing {
         // Publish to GitHub Packages for this repo
         maven {
             name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/CraftyStudios/Framework")
+            url = uri("https://maven.pkg.github.com/CraftyStudios/framework") // has to be lowercase becuase of github
             credentials {
                 username = (findProperty("gpr.user") as String?) ?: System.getenv("USERNAME")
                 password = (findProperty("gpr.key") as String?) ?: System.getenv("TOKEN")
