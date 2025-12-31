@@ -28,11 +28,11 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew build
 
-      - name: Publish to GitHub Packages
+      - name: Publish to Nexus
         run: ./gradlew publish
         env:
-          USERNAME: ${{ github.actor }}
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
 
       - name: Upload JAR to GitHub Release
         env:
