@@ -7,6 +7,8 @@ internal object RuntimeAnalyzer {
     private const val LIBRARY_PLUGIN_NAME = "Framework"
 
     fun findCallingPlugin(): JavaPlugin? {
+        var potentialPlugin: JavaPlugin? = null
+
         val stackTrace = Thread.currentThread().stackTrace
         for (i in 2 until stackTrace.size) {
             try {
@@ -16,14 +18,20 @@ internal object RuntimeAnalyzer {
                 if (classLoader != null && classLoader.toString().contains("PluginClassLoader")) {
                     val pluginName = extractPluginName(classLoader.toString())
                     val baseName = pluginName?.substringBefore(" ")
-                    if (baseName != null && baseName != LIBRARY_PLUGIN_NAME) {
-                        return Bukkit.getPluginManager().getPlugin(baseName) as? JavaPlugin
+                    if (baseName != null) {
+                        if (baseName == LIBRARY_PLUGIN_NAME) {
+                            potentialPlugin = Bukkit.getPluginManager().getPlugin(baseName) as? JavaPlugin
+                            continue // skip for now
+                        } else {
+                            return Bukkit.getPluginManager().getPlugin(baseName) as? JavaPlugin
+                        }
                     }
                 }
             } catch (ignored: ClassNotFoundException) {}
         }
 
-        return null
+        // the calling plugin is the library itself
+        return potentialPlugin
     }
 
     private fun extractPluginName(classLoaderString: String): String? {

@@ -7,11 +7,16 @@ import com.esotericsoftware.kryo.kryo5.objenesis.strategy.StdInstantiatorStrateg
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import dev.crafty.framework.api.data.DataKey
+import dev.crafty.framework.api.data.RegisterClass
 import dev.crafty.framework.api.data.StorageProvider
+import dev.crafty.framework.api.lifecycle.FrameworkPlugin
 import dev.crafty.framework.api.logs.Logger
+import dev.crafty.framework.api.tasks.now
+import dev.crafty.framework.bootstrap.FrameworkPluginLoader
 import dev.crafty.framework.data.DataConfig
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import org.reflections.Reflections
 
 internal class PostgresStorageProvider : StorageProvider, KoinComponent {
     private val logger: Logger by inject()
@@ -56,6 +61,19 @@ internal class PostgresStorageProvider : StorageProvider, KoinComponent {
 
         // works for objects without no-arg constructors
         kryo.instantiatorStrategy = StdInstantiatorStrategy()
+
+        // run post-init
+        now {
+            FrameworkPluginLoader.loadedPlugins.forEach { plugin ->
+                val reflections = Reflections(plugin.javaClass.packageName)
+                val annotatedWithReflection = reflections.getTypesAnnotatedWith(RegisterClass::class.java)
+
+                for (clazz in annotatedWithReflection) {
+                    kryo.register(clazz)
+                    logger.debug("Registered class $clazz for serialization (plugin: ${plugin.name})")
+                }
+            }
+        }
     }
 
     override fun shutdown() {

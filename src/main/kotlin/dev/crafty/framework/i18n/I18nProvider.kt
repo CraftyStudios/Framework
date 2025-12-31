@@ -112,8 +112,11 @@ internal class I18nProvider : I18n, KoinComponent {
     }
 
     private fun getLangConfig(plugin: JavaPlugin): YamlConfiguration {
-        return plugin.getResource("lang.yml")?.let { inputStream ->
-            YamlConfiguration.loadConfiguration(inputStream.reader())
-        } ?: YamlConfiguration()
+        val file = plugin.dataFolder.resolve("lang.yml")
+        if (!file.exists()) {
+            plugin.saveResource("lang.yml", false)
+        }
+
+        return YamlConfiguration.loadConfiguration(file)
     }
 }

@@ -11,6 +11,7 @@ abstract class FrameworkPlugin(
 ) : JavaPlugin() {
     final override fun onEnable() {
         FrameworkPluginLoader.loadPlugin(this)
+        saveResource("lang.yml", false)
 
         initialize()
     }

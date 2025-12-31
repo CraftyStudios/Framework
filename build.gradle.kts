@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "dev.crafty"
-version = "1.0.1-SNAPSHOT"
+version = "1.0.2-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -40,6 +40,8 @@ dependencies {
 
     // db drivers
     implementation("org.postgresql:postgresql:42.7.7")
+
+    implementation("co.aikar:acf-paper:0.5.1-SNAPSHOT")
 }
 
 tasks {
@@ -54,6 +56,13 @@ tasks {
 val targetJavaVersion = 21
 kotlin {
     jvmToolchain(targetJavaVersion)
+    compilerOptions {
+        javaParameters = true
+    }
+}
+
+tasks.compileJava {
+    options.compilerArgs.add("-parameters")
 }
 
 tasks.build {
@@ -69,12 +78,20 @@ tasks.processResources {
     }
 }
 
+// generate sources jar
+val sourcesJar by tasks.creating(org.gradle.jvm.tasks.Jar::class) {
+    archiveClassifier.set("sources")
+    from(kotlin.sourceSets.main.get().kotlin)
+}
+
 publishing {
     publications {
         create<MavenPublication>("mavenLocal") {
             artifact(tasks.named("shadowJar")) {
                 builtBy(tasks.named("shadowJar"))
             }
+
+            artifact(sourcesJar)
 
             groupId = project.group.toString()
             artifactId = project.name
@@ -108,4 +125,9 @@ publishing {
 
 tasks.named<ShadowJar>("shadowJar") {
     archiveClassifier.set("") // remove the -all suffix
+}
+
+tasks.shadowJar {
+    relocate("co.aikar.commands", "dev.crafty.framework.extern.acf.commands")
+    relocate("co.aikar.locales", "dev.crafty.framework.extern.acf.locales")
 }

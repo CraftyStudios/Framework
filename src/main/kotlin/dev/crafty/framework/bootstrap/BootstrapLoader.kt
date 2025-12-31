@@ -4,6 +4,7 @@ import dev.crafty.framework.Framework
 import dev.crafty.framework.api.data.DataStore
 import dev.crafty.framework.api.i18n.I18n
 import dev.crafty.framework.api.logs.Logger
+import dev.crafty.framework.config.setupConfig
 import dev.crafty.framework.data.DataConfig
 import dev.crafty.framework.data.DataConfigLoader
 import dev.crafty.framework.data.DefaultDataStore
@@ -62,12 +63,5 @@ internal object BootstrapLoader {
         }
     }
 
-    private inline fun <reified T> setupConfig(path: String, loader: KtConfigLoader<T>, instance: T): T {
-        val file = Framework.instance.dataFolder.resolve(path)
-        if (!file.exists()) {
-            loader.save(file, instance)
-        }
 
-        return loader.load(file)
-    }
 }
