@@ -111,16 +111,25 @@ publishing {
 
     repositories {
         maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/CraftyStudios/framework") // has to be lowercase becuase of github
+            name = "SonatypeNexus"
+            url = uri(
+                if (version.toString().endsWith("-SNAPSHOT"))
+                    "https://repo.craftystudios.net/repository/maven-snapshots/"
+                else
+                    "https://repo.craftystudios.net/repository/maven-releases/"
+            )
+
             credentials {
-                username = (findProperty("gpr.user") as String?) ?: System.getenv("USERNAME")
-                password = (findProperty("gpr.key") as String?) ?: System.getenv("TOKEN")
+                username = (findProperty("nexus.user") as String?)
+                    ?: System.getenv("NEXUS_USERNAME")
+                password = (findProperty("nexus.password") as String?)
+                    ?: System.getenv("NEXUS_PASSWORD")
             }
         }
 
         mavenLocal()
     }
+
 }
 
 tasks.named<ShadowJar>("shadowJar") {
