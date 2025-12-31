@@ -69,26 +69,39 @@ tasks.processResources {
     }
 }
 
-val sourcesJar by tasks.registering(Jar::class) {
-    archiveClassifier.set("sources")
-    from(sourceSets.main.get().allSource)
-}
-
 publishing {
     publications {
         create<MavenPublication>("mavenLocal") {
             artifact(tasks.named("shadowJar")) {
                 builtBy(tasks.named("shadowJar"))
             }
-            artifact(sourcesJar)
 
             groupId = project.group.toString()
             artifactId = project.name
             version = project.version.toString()
         }
+
+        create<MavenPublication>("gpr") {
+            artifact(tasks.named("shadowJar")) {
+                builtBy(tasks.named("shadowJar"))
+            }
+
+            groupId = project.group.toString().replace(" ", "-")
+            artifactId = project.name.toLowerCase().replace(" ", "-")
+            version = project.version.toString().replace(" ", "-")
+        }
     }
 
     repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/CraftyStudios/framework") // has to be lowercase becuase of github
+            credentials {
+                username = (findProperty("gpr.user") as String?) ?: System.getenv("USERNAME")
+                password = (findProperty("gpr.key") as String?) ?: System.getenv("TOKEN")
+            }
+        }
+
         mavenLocal()
     }
 }
