@@ -66,9 +66,12 @@ tasks.processResources {
     }
 }
 
+// Publishing configuration: adds GitHub Packages (https://maven.pkg.github.com)
+// Credentials are read from (in priority): gradle.properties (gpr.user/gpr.key) or
+// environment variables USERNAME and TOKEN (the workflow sets these).
 publishing {
     publications {
-        create<MavenPublication>("mavenLocal") {
+        create<MavenPublication>("gpr") {
             artifact(tasks.named("shadowJar")) {
                 builtBy(tasks.named("shadowJar"))
             }
@@ -80,6 +83,17 @@ publishing {
     }
 
     repositories {
+        // Publish to GitHub Packages for this repo
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/CraftyStudios/Framework")
+            credentials {
+                username = (findProperty("gpr.user") as String?) ?: System.getenv("USERNAME")
+                password = (findProperty("gpr.key") as String?) ?: System.getenv("TOKEN")
+            }
+        }
+
+        // Also keep local publishing available for development
         mavenLocal()
     }
 }
