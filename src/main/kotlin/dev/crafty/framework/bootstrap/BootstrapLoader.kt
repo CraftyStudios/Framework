@@ -48,7 +48,8 @@ internal object BootstrapLoader {
                 setupConfig(
                     "data.yml",
                     DataConfigLoader,
-                    DataConfig()
+                    DataConfig(),
+                    Framework.instance
                 )
             }
         }
