@@ -420,6 +420,17 @@ items:
 ```
 
 # Config System
+Add the following dependencies:
+```kotlin
+plugins {
+    id("com.google.devtools.ksp") version "2.3.4"
+}
+
+dependencies {
+    ksp("dev.s7a:ktConfig-ksp:2.0.0-SNAPSHOT")
+}
+```
+
 First define the annotated data class:
 ```kotlin
 @KtConfig(hasDefault = true)
@@ -452,7 +463,7 @@ data class PostgresConfig(
 ```
 NOTE: You should NOT create the yml file in resources. Our setupConfig() method handles this (see below). 
 
-Next, run a `gradle build` to have the config library generate the loader
+Next, run a `gradle kspKotlin` to have the config library generate the loader
 
 Add the following to the initialize method of your plugin:
 
