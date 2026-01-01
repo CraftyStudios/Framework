@@ -26,7 +26,6 @@ abstract class PaginatedMenu<T>(
 ) : Menu(player) {
 
     protected var currentPageIndex = 0
-        private set
 
     protected var paginatedSlots: List<Int> = emptyList()
 
@@ -213,13 +212,13 @@ abstract class PaginatedMenu<T>(
         }
     }
 
-    private fun maxPageIndex(): Int {
+    protected fun maxPageIndex(): Int {
         val pageSize = paginatedSlots.size
         if (pageSize == 0) return 0
         return max(0, (dataList.size - 1) / pageSize)
     }
 
-    private fun rebuild(inventory: Inventory) {
+    protected fun rebuild(inventory: Inventory) {
         val configFile = owningPlugin.dataFolder.resolve("$BASE_MENU_FOLDER/$id.yml")
         val config = YamlConfiguration.loadConfiguration(configFile)
         val patternList = config.getOrWarn("pattern", emptyList<String>())
