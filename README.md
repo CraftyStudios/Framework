@@ -44,6 +44,7 @@ The framework provides a variety of features to help you build your plugin:
 - [Logging Utilities](#logging-utilities)
 - [Task Scheduling](#task-scheduling)
 - [Menu System](#menu-system)
+- [Config System](#config-system)
 - [Command Framework](#command-framework)
 
 # Dependency Injection
@@ -417,6 +418,62 @@ items:
       left-click:
         - "next-page"
 ```
+
+# Config System
+First define the annotated data class:
+```kotlin
+@KtConfig(hasDefault = true)
+data class DataConfig(
+    @Comment("PostgreSQL database configuration.")
+    var postgres: PostgresConfig = PostgresConfig(),
+)
+
+@KtConfig(hasDefault = true)
+data class PostgresConfig(
+    @Comment("The hostname or IP address of the PostgreSQL server.")
+    var host: String = "localhost",
+
+    @Comment("The port of the PostgreSQL server.")
+    var port: Int = 5432,
+
+    @Comment("The database name of the PostgreSQL server.")
+    var database: String = "mydatabase",
+
+    @Comment("The username for the PostgreSQL database.")
+    var username: String = "myuser",
+
+    @Comment("The password for the PostgreSQL database.")
+    var password: String = "mypassword"
+) {
+    fun toJdbcUrl(): String {
+        return "jdbc:postgresql://$host:$port/$database"
+    }
+}
+```
+NOTE: You should NOT create the yml file in resources. Our setupConfig() method handles this (see below). 
+
+Next, run a `gradle build` to have the config library generate the loader
+
+Add the following to the initialize method of your plugin:
+
+```kotlin
+override fun initialize() {
+    // DataConfigLoader is the generated object from the config library
+    val configModule = setupConfig("data.yml", DataConfigLoader, DataConfig(), this)
+
+    loadKoinModules(module {
+        single<BlockworksConfig> { configModule }
+        // add more here
+    })
+}
+```
+
+Now you can inject your config anywhere using the normal inject pattern.
+```kotlin
+val dataConfig: DataConfig by inject()
+```
+
+We use [ktConfig](https://github.com/sya-ri/ktConfig) to back the config system. Refer to their documentation for a detailed api reference.
 
 # Command Framework
 We decided to not reinvent the wheel and instead have our plugins use [Aikar's Command Framework (ACF)](https://github.com/aikar/commands/wiki/Using-ACF).
