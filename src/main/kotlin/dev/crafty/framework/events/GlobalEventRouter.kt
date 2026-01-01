@@ -47,7 +47,7 @@ object GlobalEventRouter : Listener {
         }
     }
 
-    fun <T : Event> registerListener(eventClass: Class<T>, listener: (T) -> Unit): Int {
+    fun <T : Event> registerListener(eventClass: Class<T>, listener: (T, Int) -> Unit): Int {
         val entry = ListenerEntry(
             id = listener.hashCode(),
             eventClass = eventClass,
@@ -65,10 +65,14 @@ object GlobalEventRouter : Listener {
 
     private fun onEvent(event: Event) {
         val eventClass = event.javaClass
-        listeners.forEach { entry ->
+
+        // create snapshot to allow listeners to unregister themselves during invocation
+        val snapshot = listeners.toList()
+
+        snapshot.forEach { entry ->
             if (entry.eventClass == eventClass) {
                 @Suppress("UNCHECKED_CAST")
-                (entry.listener as (Event) -> Unit).invoke(event)
+                (entry.listener as (Event, Int) -> Unit).invoke(event, entry.id) // pass event and listener id
             }
         }
     }
@@ -76,6 +80,6 @@ object GlobalEventRouter : Listener {
     data class ListenerEntry<T>(
         val id: Int,
         val eventClass: Class<T>,
-        val listener: (T) -> Unit
+        val listener: (T, Int) -> Unit
     )
 }

@@ -10,7 +10,7 @@ import org.bukkit.event.Event
  * @param listener The function to be called when the event is fired.
  * @return The listener id (used to cancel it).
  */
-inline fun <reified E : Event> on(noinline listener: (E) -> Unit): Int =
+inline fun <reified E : Event> on(noinline listener: (E, Int) -> Unit): Int =
     GlobalEventRouter.registerListener(E::class.java, listener)
 
 /**
