@@ -1,6 +1,7 @@
 package dev.crafty.framework.lib
 
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.TextComponent
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver
@@ -41,15 +42,22 @@ fun List<String>.replaceInStringList(placeholders: Map<String, Any>): List<Strin
 
 fun Component.replaceInComponent(placeholders: Map<String, Any>): Component {
     var result = this
+
     for ((key, value) in placeholders) {
         val literal = Pattern.quote("{$key}")
+        val replacement = minimessage.deserialize(value.toString())
+
         result = result.replaceText {
             it.match(literal)
-                .replacement(value.toString())
+                .replacement(replacement)
         }
     }
+
     return result
 }
+
+fun Component.text(): String =
+    (this as TextComponent).content()
 
 fun List<Component>.replaceInComponentList(placeholders: Map<String, Any>): List<Component> =
     this.map { it.replaceInComponent(placeholders) }

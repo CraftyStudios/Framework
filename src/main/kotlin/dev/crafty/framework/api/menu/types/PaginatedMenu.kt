@@ -34,10 +34,6 @@ abstract class PaginatedMenu<T>(
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    /* =======================
-     *  Abstract API
-     * ======================= */
-
     abstract suspend fun data(): List<T>
 
     abstract fun paginatedPlaceholders(): Map<String, (T) -> Any>
@@ -47,10 +43,6 @@ abstract class PaginatedMenu<T>(
     abstract fun staticPlaceholders(): Map<String, Any>
 
     final override fun placeholders(): Map<String, Any> = staticPlaceholders()
-
-    /* =======================
-     *  Entry point
-     * ======================= */
 
     override fun open() {
         player.closeInventory()
@@ -68,10 +60,6 @@ abstract class PaginatedMenu<T>(
         // show loading menu immediately
         player.openInventory(buildMenu())
     }
-
-    /* =======================
-     *  Menu building
-     * ======================= */
 
     override fun preBuild(
         config: YamlConfiguration,
@@ -173,10 +161,6 @@ abstract class PaginatedMenu<T>(
 
         return item to base.second
     }
-
-    /* =======================
-     *  Pagination
-     * ======================= */
 
     @ClickAction("next-page")
     fun nextPage(event: InventoryClickEvent) {
