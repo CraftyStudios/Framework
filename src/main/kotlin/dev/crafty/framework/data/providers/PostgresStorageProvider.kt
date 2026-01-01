@@ -14,6 +14,7 @@ import dev.crafty.framework.api.logs.Logger
 import dev.crafty.framework.api.tasks.now
 import dev.crafty.framework.bootstrap.FrameworkPluginLoader
 import dev.crafty.framework.data.DataConfig
+import dev.crafty.framework.data.SerializerManager
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.reflections.Reflections
@@ -62,16 +63,12 @@ internal class PostgresStorageProvider : StorageProvider, KoinComponent {
         // works for objects without no-arg constructors
         kryo.instantiatorStrategy = StdInstantiatorStrategy()
 
-        // run post-init
-        now {
-            FrameworkPluginLoader.loadedPlugins.forEach { plugin ->
-                val reflections = Reflections(plugin.javaClass.packageName)
-                val annotatedWithReflection = reflections.getTypesAnnotatedWith(RegisterClass::class.java)
+        kryo.isRegistrationRequired = false
 
-                for (clazz in annotatedWithReflection) {
-                    kryo.register(clazz)
-                    logger.debug("Registered class $clazz for serialization (plugin: ${plugin.name})")
-                }
+        now {
+            SerializerManager.allSerializers().forEach { (kClass, serializer) ->
+                logger.debug("Registering serializer for ${kClass.simpleName}")
+                kryo.register(kClass.java, serializer)
             }
         }
     }
@@ -163,5 +160,31 @@ internal class PostgresStorageProvider : StorageProvider, KoinComponent {
             stmt.executeUpdate()
             stmt.close()
         }
+    }
+
+    override fun getKeyNames(): Set<String> {
+        logger.debug("Getting all keys from Postgres storage provider")
+
+        val keys = mutableSetOf<String>()
+
+        ds.connection.use { conn ->
+            val stmt = conn.prepareStatement(
+                """
+                SELECT framework_data_key
+                FROM framework_data_store;
+            """.trimIndent()
+            )
+
+            val rs = stmt.executeQuery()
+            while (rs.next()) {
+                val keyName = rs.getString("framework_data_key")
+                keys.add(keyName)
+            }
+
+            rs.close()
+            stmt.close()
+        }
+
+        return keys
     }
 }

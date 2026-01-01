@@ -65,4 +65,8 @@ internal class CacheProvider(
         // invalidate cache
         cache.invalidate(key.name)
     }
+
+    override fun getKeyNames(): Set<String> {
+        return persistence.getKeyNames()
+    }
 }

@@ -2,7 +2,10 @@ package dev.crafty.framework.api.menu.types
 
 import dev.crafty.framework.api.menu.ClickAction
 import dev.crafty.framework.api.menu.Menu
+import dev.crafty.framework.api.tasks.now
 import dev.crafty.framework.lib.replaceInComponent
+import kotlinx.coroutines.*
+import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.configuration.file.YamlConfiguration
@@ -10,11 +13,13 @@ import org.bukkit.entity.Player
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
+import org.bukkit.persistence.PersistentDataContainer
+import org.bukkit.persistence.PersistentDataType
+import kotlin.math.max
 
 /**
- * Abstract base class for creating paginated menus in the Crafty Framework.
- * @param T The type of data to be displayed in the paginated menu.
- * @param player The player for whom the menu is created.
+ * Async-safe paginated menu base.
+ * Data is fetched off-thread, inventories are rendered on-thread.
  */
 abstract class PaginatedMenu<T>(
     player: Player
@@ -23,45 +28,51 @@ abstract class PaginatedMenu<T>(
     protected var currentPageIndex = 0
         private set
 
-    /**
-     * Holds indices of slots used for pagination.
-     */
     protected var paginatedSlots: List<Int> = emptyList()
 
-    /**
-     * Returns the list of data items to be displayed in the paginated menu.
-     * @return A list of data items of type T.
-     */
-    abstract fun data(): List<T>
+    private var dataList: List<T> = emptyList()
+    private var loading = true
 
-    /**
-     * Returns a map of placeholders for the paginated data.
-     * Each placeholder is associated with a function that takes an item of type T
-     * and returns the corresponding value for that placeholder.
-     * @return A map of placeholder keys to their corresponding value functions.
-     */
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /* =======================
+     *  Abstract API
+     * ======================= */
+
+    abstract suspend fun data(): List<T>
+
     abstract fun paginatedPlaceholders(): Map<String, (T) -> Any>
 
-    /**
-     * Returns a map of material providers for the paginated data.
-     * Each entry in the map associates a key with a function that takes an item of type T
-     * and returns the corresponding ItemStack to be used as the material for that item.
-     * @return A map of keys to their corresponding material provider functions.
-     */
     abstract fun materialProviders(): Map<String, (T) -> ItemStack>
 
-    /**
-     * Returns a map of static placeholders for the paginated menu.
-     * These placeholders do not depend on the paginated data.
-     * @return A map of placeholder keys to their corresponding values.
-     */
     abstract fun staticPlaceholders(): Map<String, Any>
 
-    /**
-     * Returns a map of placeholders for the paginated menu.
-     * @return A map of placeholder keys to their corresponding values.
-     */
     final override fun placeholders(): Map<String, Any> = staticPlaceholders()
+
+    /* =======================
+     *  Entry point
+     * ======================= */
+
+    override fun open() {
+        player.closeInventory()
+
+        scope.launch {
+            val result = runCatching { data() }.getOrDefault(emptyList())
+
+            now {
+                dataList = result
+                loading = false
+                player.openInventory(buildMenu())
+            }
+        }
+
+        // show loading menu immediately
+        player.openInventory(buildMenu())
+    }
+
+    /* =======================
+     *  Menu building
+     * ======================= */
 
     override fun preBuild(
         config: YamlConfiguration,
@@ -88,25 +99,20 @@ abstract class PaginatedMenu<T>(
     }
 
     override fun buildMenu(): Inventory {
-        val inventory = super.buildMenu() // build base menu
+        val inventory = super.buildMenu()
 
-        val configFile = owningPlugin.dataFolder.resolve("$BASE_MENU_FOLDER/$id.yml")
-        val config = YamlConfiguration.loadConfiguration(configFile)
-        val patternList = config.getOrWarn("pattern", emptyList<String>())
-
-        // find all paginated slots by scanning the pattern
-        val paginatedIndices = mutableListOf<Int>()
-        patternList.forEachIndexed { rowIndex, row ->
-            row.forEachIndexed { colIndex, char ->
-                val itemConfig = config.getConfigurationSection("items.$char")
-                val isPaginated = itemConfig?.getConfigurationSection("paginated-options")
-                    ?.getOrDefault("is-paginated", false) == true
-                if (isPaginated) {
-                    paginatedIndices.add(rowIndex * 9 + colIndex)
+        if (loading) {
+            inventory.contents = Array(inventory.size) {
+                ItemStack(Material.GRAY_STAINED_GLASS_PANE).apply {
+                    itemMeta = itemMeta.apply {
+                        displayName(
+                            net.kyori.adventure.text.Component.text("Loading...")
+                        )
+                    }
                 }
             }
+            return inventory
         }
-        paginatedSlots = paginatedIndices
 
         return inventory
     }
@@ -118,11 +124,13 @@ abstract class PaginatedMenu<T>(
 
         val base = super.buildItem(config, slotIndex)
 
+        if (loading) return base
+
         val paginatedIndex = paginatedSlots.indexOf(slotIndex)
         if (paginatedIndex == -1) return base
 
         val dataIndex = currentPageIndex * paginatedSlots.size + paginatedIndex
-        val dataItem = data().getOrNull(dataIndex)
+        val dataItem = dataList.getOrNull(dataIndex)
             ?: return ItemStack(Material.AIR) to emptyList()
 
         val paginatedOptions = config.getConfigurationSection("paginated-options")
@@ -143,6 +151,10 @@ abstract class PaginatedMenu<T>(
 
                     val providedMeta = it.itemMeta
                     val meta = itemMeta
+                    val pdc = providedMeta.persistentDataContainer
+                    val mdc = meta.persistentDataContainer
+
+                    copyPersistentData(pdc, mdc)
 
                     if (providedMeta.hasCustomModelData()) {
                         meta.setCustomModelData(providedMeta.customModelData)
@@ -163,28 +175,48 @@ abstract class PaginatedMenu<T>(
         return item to base.second
     }
 
+    /* =======================
+     *  Pagination
+     * ======================= */
+
     @ClickAction("next-page")
     fun nextPage(event: InventoryClickEvent) {
+        if (loading) return
+
         val maxPage = maxPageIndex()
         if (currentPageIndex >= maxPage) return
 
         currentPageIndex++
-        rebuild(event)
+        reloadAndRebuild(event)
     }
 
     @ClickAction("previous-page")
     fun previousPage(event: InventoryClickEvent) {
+        if (loading) return
         if (currentPageIndex <= 0) return
 
         currentPageIndex--
-        rebuild(event)
+        reloadAndRebuild(event)
+    }
+
+    private fun reloadAndRebuild(event: InventoryClickEvent) {
+        loading = true
+
+        scope.launch {
+            val result = runCatching { data() }.getOrDefault(emptyList())
+
+            withContext(Dispatchers.Main) {
+                dataList = result
+                loading = false
+                rebuild(event)
+            }
+        }
     }
 
     private fun maxPageIndex(): Int {
         val pageSize = paginatedSlots.size
         if (pageSize == 0) return 0
-
-        return (data().size - 1) / pageSize
+        return max(0, (dataList.size - 1) / pageSize)
     }
 
     private fun rebuild(event: InventoryClickEvent) {
@@ -201,4 +233,103 @@ abstract class PaginatedMenu<T>(
         val result = buildItems(pattern, config)
         inventory.contents = result.items
     }
+
+    private fun copyPersistentData(
+        from: PersistentDataContainer,
+        to: PersistentDataContainer
+    ) {
+        for (key in from.keys) {
+
+            when {
+                from.has(key, PersistentDataType.STRING) -> {
+                    to.set(
+                        key,
+                        PersistentDataType.STRING,
+                        from.get(key, PersistentDataType.STRING)!!
+                    )
+                }
+
+                from.has(key, PersistentDataType.INTEGER) -> {
+                    to.set(
+                        key,
+                        PersistentDataType.INTEGER,
+                        from.get(key, PersistentDataType.INTEGER)!!
+                    )
+                }
+
+                from.has(key, PersistentDataType.LONG) -> {
+                    to.set(
+                        key,
+                        PersistentDataType.LONG,
+                        from.get(key, PersistentDataType.LONG)!!
+                    )
+                }
+
+                from.has(key, PersistentDataType.DOUBLE) -> {
+                    to.set(
+                        key,
+                        PersistentDataType.DOUBLE,
+                        from.get(key, PersistentDataType.DOUBLE)!!
+                    )
+                }
+
+                from.has(key, PersistentDataType.FLOAT) -> {
+                    to.set(
+                        key,
+                        PersistentDataType.FLOAT,
+                        from.get(key, PersistentDataType.FLOAT)!!
+                    )
+                }
+
+                from.has(key, PersistentDataType.BYTE) -> {
+                    to.set(
+                        key,
+                        PersistentDataType.BYTE,
+                        from.get(key, PersistentDataType.BYTE)!!
+                    )
+                }
+
+                from.has(key, PersistentDataType.BYTE_ARRAY) -> {
+                    to.set(
+                        key,
+                        PersistentDataType.BYTE_ARRAY,
+                        from.get(key, PersistentDataType.BYTE_ARRAY)!!
+                    )
+                }
+
+                from.has(key, PersistentDataType.INTEGER_ARRAY) -> {
+                    to.set(
+                        key,
+                        PersistentDataType.INTEGER_ARRAY,
+                        from.get(key, PersistentDataType.INTEGER_ARRAY)!!
+                    )
+                }
+
+                from.has(key, PersistentDataType.LONG_ARRAY) -> {
+                    to.set(
+                        key,
+                        PersistentDataType.LONG_ARRAY,
+                        from.get(key, PersistentDataType.LONG_ARRAY)!!
+                    )
+                }
+
+                from.has(key, PersistentDataType.TAG_CONTAINER) -> {
+                    to.set(
+                        key,
+                        PersistentDataType.TAG_CONTAINER,
+                        from.get(key, PersistentDataType.TAG_CONTAINER)!!
+                    )
+                }
+
+                from.has(key, PersistentDataType.TAG_CONTAINER_ARRAY) -> {
+                    to.set(
+                        key,
+                        PersistentDataType.TAG_CONTAINER_ARRAY,
+                        from.get(key, PersistentDataType.TAG_CONTAINER_ARRAY)!!
+                    )
+                }
+            }
+        }
+    }
+
 }

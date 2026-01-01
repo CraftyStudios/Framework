@@ -27,4 +27,12 @@ interface DataStore {
      * @param block The block of operations to perform within the transaction.
      */
     suspend fun transaction(block: suspend Transaction.() -> Unit)
+
+    /**
+     * Gets the value associated with the given key prefix.
+     * @param T The type of the value.
+     * @param keyPattern The data key prefix.
+     * @return The value associated with the key prefix, or null if not found.
+     */
+    suspend fun <T : Any> getPrefixed(keyPattern: DataKeyPrefix<T>): List<T>
 }

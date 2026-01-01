@@ -30,4 +30,9 @@ internal interface StorageProvider {
      * @param key The data key.
      */
     fun <T : Any> remove(key: DataKey<T>)
+
+    /**
+     * Gets all keys stored in the storage provider.
+     */
+    fun getKeyNames(): Set<String>
 }

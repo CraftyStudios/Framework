@@ -19,6 +19,7 @@ import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
 import org.bukkit.event.inventory.InventoryOpenEvent
 import org.bukkit.inventory.Inventory
+import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
@@ -71,9 +72,19 @@ abstract class Menu(
     /**
      * Opens the menu for the player.
      */
-    fun open() {
+    open fun open() {
         val inv = buildMenu()
         player.openInventory(inv)
+    }
+
+    protected open fun shouldCancelClick(event: InventoryClickEvent, buildInv: Inventory): Boolean {
+        if (event.inventory == buildInv) return true
+
+        if (event.clickedInventory == event.view.bottomInventory && event.isShiftClick) {
+            return true
+        }
+
+        return false
     }
 
     /**
@@ -136,9 +147,7 @@ abstract class Menu(
         }
 
         val clickId = on<InventoryClickEvent> { event, _ ->
-            // not our inventory
-            if (event.clickedInventory != inventory) return@on
-            event.isCancelled = true
+            event.isCancelled = shouldCancelClick(event, inventory)
 
             val slot = event.slot
             val actions = result.actions[slot] ?: return@on
@@ -364,7 +373,7 @@ abstract class Menu(
      * @param title The title of the container.
      * @return The created Inventory.
      */
-    private fun createInventoryContainer(
+    fun createInventoryContainer(
         type: ContainerType,
         rows: Int,
         title: Component
@@ -416,4 +425,6 @@ abstract class Menu(
         val actions: Map<Int, List<MenuAction>>,
         val items: Array<ItemStack> // not comparing or hashing, don't need these methods
     )
+
+
 }

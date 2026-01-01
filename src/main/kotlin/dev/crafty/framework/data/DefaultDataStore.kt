@@ -1,6 +1,7 @@
 package dev.crafty.framework.data
 
 import dev.crafty.framework.api.data.DataKey
+import dev.crafty.framework.api.data.DataKeyPrefix
 import dev.crafty.framework.api.data.DataStore
 import dev.crafty.framework.api.data.Transaction
 import dev.crafty.framework.data.providers.CacheProvider
@@ -61,6 +62,11 @@ internal class DefaultDataStore : DataStore {
                 override suspend fun <T : Any> update(key: DataKey<T>, transform: (T?) -> T) {
                     set(key, transform(get(key)))
                 }
+
+                override suspend fun <T : Any> getPrefixed(keyPattern: DataKeyPrefix<T>): List<T> {
+                    // get all keys that start with the prefix
+                    return getPrefixedVals(keyPattern)
+                }
             }
 
             try {
@@ -83,5 +89,25 @@ internal class DefaultDataStore : DataStore {
                 throw t;
             }
         }
+    }
+
+    override suspend fun <T : Any> getPrefixed(keyPattern: DataKeyPrefix<T>): List<T> {
+        return getPrefixedVals(keyPattern)
+    }
+
+    private suspend fun <T: Any> getPrefixedVals(keyPattern: DataKeyPrefix<T>): List <T> {
+        // get all keys that start with the prefix
+        val allKeys = provider.getKeyNames()
+        val matchingKeys = allKeys.filter { it.startsWith(keyPattern.prefix) }
+        val results = mutableListOf<T>()
+        for (keyName in matchingKeys) {
+            val key = DataKey(keyName, keyPattern.type)
+            val value = get(key)
+            if (value != null) {
+                results.add(value)
+            }
+        }
+
+        return results
     }
 }

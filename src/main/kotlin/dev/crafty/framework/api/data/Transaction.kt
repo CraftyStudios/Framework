@@ -41,4 +41,12 @@ interface Transaction {
      * @param transform The function to transform the current value.
      */
     suspend fun <T : Any> update(key: DataKey<T>, transform: (T?) -> T)
+
+    /**
+     * Gets the value associated with the given key prefix.
+     * @param T The type of the value.
+     * @param keyPattern The data key prefix.
+     * @return The value associated with the key prefix, or null if not found.
+     */
+    suspend fun <T : Any> getPrefixed(keyPattern: DataKeyPrefix<T>): List<T>
 }
