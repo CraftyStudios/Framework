@@ -198,7 +198,7 @@ abstract class PaginatedMenu<T>(
         reloadAndRebuild(event.inventory)
     }
 
-    private fun reloadAndRebuild(inventory: Inventory) {
+    protected fun reloadAndRebuild(inventory: Inventory) {
         loading = true
 
         scope.launch {
