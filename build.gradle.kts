@@ -2,6 +2,7 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 plugins {
     kotlin("jvm") version "2.3.0"
+    kotlin("plugin.serialization") version "2.3.0"
     id("com.gradleup.shadow") version "8.3.0"
     id("xyz.jpenilla.run-paper") version "2.3.1"
     id("com.google.devtools.ksp") version "2.3.2"
@@ -36,7 +37,7 @@ dependencies {
     implementation("dev.s7a:ktConfig:2.0.0-SNAPSHOT")
     ksp("dev.s7a:ktConfig-ksp:2.0.0-SNAPSHOT")
 
-    implementation("com.esotericsoftware.kryo:kryo5:5.6.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-protobuf:1.8.1")
 
     // db drivers
     implementation("org.postgresql:postgresql:42.7.7")

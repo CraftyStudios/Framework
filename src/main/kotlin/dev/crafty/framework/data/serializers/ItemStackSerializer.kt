@@ -1,33 +1,33 @@
 package dev.crafty.framework.data.serializers
 
-import com.esotericsoftware.kryo.kryo5.Kryo
-import com.esotericsoftware.kryo.kryo5.Serializer
-import com.esotericsoftware.kryo.kryo5.io.Input
-import com.esotericsoftware.kryo.kryo5.io.Output
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import org.bukkit.inventory.ItemStack
 import org.bukkit.util.io.BukkitObjectInputStream
 import org.bukkit.util.io.BukkitObjectOutputStream
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.util.Base64
 
-object ItemStackSerializer : Serializer<ItemStack>() {
-    override fun write(kryo: Kryo, output: Output, itemStack: ItemStack) {
+object ItemStackSerializer : KSerializer<ItemStack> {
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("ItemStack", PrimitiveKind.STRING)
+
+    override fun serialize(encoder: Encoder, value: ItemStack) {
         val baos = ByteArrayOutputStream()
-        val boos = BukkitObjectOutputStream(baos)
-        boos.writeObject(itemStack)
-        boos.close()
-        val bytes = baos.toByteArray()
-        output.writeInt(bytes.size)
-        output.writeBytes(bytes)
+        BukkitObjectOutputStream(baos).use { boos ->
+            boos.writeObject(value)
+        }
+        encoder.encodeString(Base64.getEncoder().encodeToString(baos.toByteArray()))
     }
 
-    override fun read(kryo: Kryo, input: Input, type: Class<out ItemStack>): ItemStack {
-        val length = input.readInt()
-        val bytes = input.readBytes(length)
-        val bais = ByteArrayInputStream(bytes)
-        val bois = BukkitObjectInputStream(bais)
-        val itemStack = bois.readObject() as ItemStack
-        bois.close()
-        return itemStack
+    override fun deserialize(decoder: Decoder): ItemStack {
+        val bytes = Base64.getDecoder().decode(decoder.decodeString())
+        return BukkitObjectInputStream(ByteArrayInputStream(bytes)).use { bois ->
+            bois.readObject() as ItemStack
+        }
     }
 }

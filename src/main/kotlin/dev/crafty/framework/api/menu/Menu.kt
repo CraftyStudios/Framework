@@ -38,6 +38,8 @@ abstract class Menu(
         const val BASE_MENU_FOLDER = "menus"
     }
 
+    private var currentInventory: Inventory? = null
+
     /**
      * The plugin that owns this menu.
      * @return The owning FrameworkPlugin.
@@ -175,7 +177,19 @@ abstract class Menu(
             onClose(event)
         }
 
+        currentInventory = inventory
+
         return inventory
+    }
+
+    /**
+     * Puts an item in the GUI at the specified slot.
+     * This method can be called after the menu has been built (e.g., after open() or buildMenu()).
+     * @param slot The slot index to place the item in.
+     * @param item The ItemStack to place.
+     */
+    protected fun putItem(slot: Int, item: ItemStack) {
+        currentInventory?.setItem(slot, item)
     }
 
     /**
@@ -270,12 +284,14 @@ abstract class Menu(
         val shiftLeftClickActionIds = actions?.getOrDefault("shift-left-click", emptyList<String>())
 
         return ItemStack(material).apply {
-            val meta = itemMeta.apply {
-                displayName(name.replaceInString(placeholders()).colorize())
-                lore(rawLore.replaceInStringList(placeholders()).colorize())
-            }
+            if (itemMeta != null) {
+                val meta = itemMeta.apply {
+                    displayName(name.replaceInString(placeholders()).colorize())
+                    lore(rawLore.replaceInStringList(placeholders()).colorize())
+                }
 
-            itemMeta = meta
+                itemMeta = meta
+            }
 
             enchantments.forEach { ench ->
                 // loop over registry, find by key, compare ignoring case, then add with level
@@ -425,6 +441,4 @@ abstract class Menu(
         val actions: Map<Int, List<MenuAction>>,
         val items: Array<ItemStack> // not comparing or hashing, don't need these methods
     )
-
-
 }

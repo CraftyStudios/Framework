@@ -1,30 +1,28 @@
 package dev.crafty.framework.data.providers
 
-import com.esotericsoftware.kryo.kryo5.Kryo
-import com.esotericsoftware.kryo.kryo5.io.Input
-import com.esotericsoftware.kryo.kryo5.io.Output
-import com.esotericsoftware.kryo.kryo5.objenesis.strategy.StdInstantiatorStrategy
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import dev.crafty.framework.api.data.DataKey
-import dev.crafty.framework.api.data.RegisterClass
 import dev.crafty.framework.api.data.StorageProvider
-import dev.crafty.framework.api.lifecycle.FrameworkPlugin
 import dev.crafty.framework.api.logs.Logger
-import dev.crafty.framework.api.tasks.now
-import dev.crafty.framework.bootstrap.FrameworkPluginLoader
 import dev.crafty.framework.data.DataConfig
 import dev.crafty.framework.data.SerializerManager
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.protobuf.ProtoBuf
+import kotlinx.serialization.serializer
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import org.reflections.Reflections
+import kotlin.reflect.KClass
 
+@OptIn(ExperimentalSerializationApi::class)
 internal class PostgresStorageProvider : StorageProvider, KoinComponent {
     private val logger: Logger by inject()
     private val config: DataConfig by inject()
 
     private var ds: HikariDataSource
-    private var kryo: Kryo
+    private val protoBuf: ProtoBuf
 
     init {
         logger.debug("Setting up Postgres storage provider")
@@ -58,18 +56,16 @@ internal class PostgresStorageProvider : StorageProvider, KoinComponent {
             stmt.close()
         }
 
-        kryo = Kryo()
-
-        // works for objects without no-arg constructors
-        kryo.instantiatorStrategy = StdInstantiatorStrategy()
-
-        kryo.isRegistrationRequired = false
-
-        now {
+        val protoModule = SerializersModule {
             SerializerManager.allSerializers().forEach { (kClass, serializer) ->
-                logger.debug("Registering serializer for ${kClass.simpleName}")
-                kryo.register(kClass.java, serializer)
+                logger.debug("Registered serializer for ${kClass.simpleName} in ProtoBuf module")
+                @Suppress("UNCHECKED_CAST")
+                contextual(kClass as KClass<Any>, serializer as KSerializer<Any>)
             }
+        }
+
+        protoBuf = ProtoBuf {
+            serializersModule = protoModule
         }
     }
 
@@ -78,6 +74,7 @@ internal class PostgresStorageProvider : StorageProvider, KoinComponent {
         ds.close()
     }
 
+    @Suppress("UNCHECKED_CAST")
     override fun <T : Any> get(key: DataKey<T>): T? {
         logger.debug("Getting value for $key")
 
@@ -98,8 +95,10 @@ internal class PostgresStorageProvider : StorageProvider, KoinComponent {
 
                 try {
                     val binary = rs.getObject("framework_data_value") as ByteArray
+                    val serializer = SerializerManager.getSerializer(key.type)
+                        ?: serializer(key.type.java)
 
-                    value = kryo.readObject(Input(binary), key.type.java) as T
+                    value = protoBuf.decodeFromByteArray(serializer, binary) as T
                 } catch (ex: Exception) {
                     logger.error("Failed to cast value for $key from database", ex)
                     throw ex
@@ -120,6 +119,7 @@ internal class PostgresStorageProvider : StorageProvider, KoinComponent {
         }
     }
 
+    @Suppress("UNCHECKED_CAST")
     override fun <T : Any> set(key: DataKey<T>, value: T) {
         logger.debug("Setting value for $key")
 
@@ -132,13 +132,14 @@ internal class PostgresStorageProvider : StorageProvider, KoinComponent {
             DO UPDATE SET framework_data_value = EXCLUDED.framework_data_value;
             """.trimIndent()
             ).use { stmt ->
-                Output(4096, -1).use { output ->
-                    kryo.writeObject(output, value)
+                val serializer = SerializerManager.getSerializer(key.type)
+                    ?: serializer(key.type.java) as kotlinx.serialization.KSerializer<T>
 
-                    stmt.setString(1, key.name)
-                    stmt.setBytes(2, output.toBytes())
-                    stmt.executeUpdate()
-                }
+                val bytes = protoBuf.encodeToByteArray(serializer, value)
+
+                stmt.setString(1, key.name)
+                stmt.setBytes(2, bytes)
+                stmt.executeUpdate()
             }
         }
     }

@@ -187,7 +187,7 @@ abstract class PaginatedMenu<T>(
         if (currentPageIndex >= maxPage) return
 
         currentPageIndex++
-        reloadAndRebuild(event)
+        reloadAndRebuild(event.inventory)
     }
 
     @ClickAction("previous-page")
@@ -196,10 +196,10 @@ abstract class PaginatedMenu<T>(
         if (currentPageIndex <= 0) return
 
         currentPageIndex--
-        reloadAndRebuild(event)
+        reloadAndRebuild(event.inventory)
     }
 
-    private fun reloadAndRebuild(event: InventoryClickEvent) {
+    private fun reloadAndRebuild(inventory: Inventory) {
         loading = true
 
         scope.launch {
@@ -208,7 +208,7 @@ abstract class PaginatedMenu<T>(
             withContext(Dispatchers.Main) {
                 dataList = result
                 loading = false
-                rebuild(event)
+                rebuild(inventory)
             }
         }
     }
@@ -219,9 +219,7 @@ abstract class PaginatedMenu<T>(
         return max(0, (dataList.size - 1) / pageSize)
     }
 
-    private fun rebuild(event: InventoryClickEvent) {
-        val inventory = event.inventory
-
+    private fun rebuild(inventory: Inventory) {
         val configFile = owningPlugin.dataFolder.resolve("$BASE_MENU_FOLDER/$id.yml")
         val config = YamlConfiguration.loadConfiguration(configFile)
         val patternList = config.getOrWarn("pattern", emptyList<String>())
