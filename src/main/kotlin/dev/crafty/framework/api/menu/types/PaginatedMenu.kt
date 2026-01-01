@@ -199,7 +199,7 @@ abstract class PaginatedMenu<T>(
         reloadAndRebuild(event)
     }
 
-    private fun reloadAndRebuild(event: InventoryClickEvent) {
+    protected fun reloadAndRebuild(event: InventoryClickEvent) {
         loading = true
 
         scope.launch {
@@ -213,13 +213,13 @@ abstract class PaginatedMenu<T>(
         }
     }
 
-    private fun maxPageIndex(): Int {
+    protected fun maxPageIndex(): Int {
         val pageSize = paginatedSlots.size
         if (pageSize == 0) return 0
         return max(0, (dataList.size - 1) / pageSize)
     }
 
-    private fun rebuild(event: InventoryClickEvent) {
+    protected fun rebuild(event: InventoryClickEvent) {
         val inventory = event.inventory
 
         val configFile = owningPlugin.dataFolder.resolve("$BASE_MENU_FOLDER/$id.yml")
