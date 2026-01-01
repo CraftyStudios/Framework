@@ -26,7 +26,6 @@ abstract class PaginatedMenu<T>(
 ) : Menu(player) {
 
     protected var currentPageIndex = 0
-        private set
 
     protected var paginatedSlots: List<Int> = emptyList()
 
