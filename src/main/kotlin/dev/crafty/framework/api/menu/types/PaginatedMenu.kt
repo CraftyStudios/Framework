@@ -204,7 +204,7 @@ abstract class PaginatedMenu<T>(
         scope.launch {
             val result = runCatching { data() }.getOrDefault(emptyList())
 
-            withContext(Dispatchers.Main) {
+            now {
                 dataList = result
                 loading = false
                 rebuild(inventory)

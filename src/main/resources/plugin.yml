@@ -1,4 +1,4 @@
 name: Framework
-version: '1.0.9-SNAPSHOT'
+version: '1.0.10-SNAPSHOT'
 main: dev.crafty.framework.Framework
 api-version: '1.21'

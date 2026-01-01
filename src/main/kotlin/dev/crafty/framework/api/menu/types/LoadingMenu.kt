@@ -35,7 +35,7 @@ abstract class LoadingMenu<T>(player: Player) : Menu(player) {
                 }
             } catch (e: Exception) {
                 owningPlugin.logger.warning("Failed to load data for menu '$id': ${e.message}")
-                withContext(Dispatchers.Main) {
+                now {
                     player.closeInventory()
                 }
             }
