@@ -3,7 +3,7 @@ package dev.crafty.framework.lib
 import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 
-internal object RuntimeAnalyzer {
+object RuntimeAnalyzer {
     private const val LIBRARY_PLUGIN_NAME = "Framework"
 
     fun findCallingPlugin(): JavaPlugin? {
