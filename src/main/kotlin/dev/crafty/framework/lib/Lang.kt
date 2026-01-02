@@ -24,7 +24,6 @@ fun String.colorize(): Component =
 fun List<String>.colorize(): List<Component> =
     this.map { it.colorize() }
 
-
 operator fun Component.plus(other: Component): Component =
     this.append(other)
 
@@ -60,9 +59,6 @@ fun Component.replaceInComponent(placeholders: Map<String, Any>): Component {
 
     return result
 }
-
-fun Component.text(): String =
-    (this as TextComponent).content()
 
 fun List<Component>.replaceInComponentList(placeholders: Map<String, Any>): List<Component> =
     this.map { it.replaceInComponent(placeholders) }

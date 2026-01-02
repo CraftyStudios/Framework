@@ -94,7 +94,7 @@ abstract class PaginatedMenu<T>(
                 ItemStack(Material.GRAY_STAINED_GLASS_PANE).apply {
                     itemMeta = itemMeta.apply {
                         displayName(
-                            net.kyori.adventure.text.Component.text("Loading...")
+                            Component.text("Loading...")
                         )
                     }
                 }
@@ -128,8 +128,15 @@ abstract class PaginatedMenu<T>(
         val item = base.first.clone().apply {
             val meta = itemMeta.apply {
                 val ph = paginatedPlaceholders().mapValues { it.value(dataItem) }
-                displayName(displayName()?.replaceInComponent(ph))
-                lore(lore()?.map { it.replaceInComponent(ph) })
+                displayName(
+                    displayName()
+                        ?.replaceInComponent(ph)
+                )
+
+                lore(
+                    lore()
+                        ?.map { it.replaceInComponent(ph) }
+                )
             }
             itemMeta = meta
 

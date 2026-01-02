@@ -5,6 +5,8 @@ import dev.crafty.framework.api.lifecycle.FrameworkPlugin
 import dev.crafty.framework.api.logs.Logger
 import dev.crafty.framework.events.GlobalEventRouter
 import dev.crafty.framework.lib.colorize
+import dev.crafty.framework.lib.replaceInComponent
+import dev.crafty.framework.lib.replaceInComponentList
 import dev.crafty.framework.lib.replaceInString
 import dev.crafty.framework.lib.replaceInStringList
 import io.papermc.paper.registry.RegistryAccess
@@ -286,8 +288,15 @@ abstract class Menu(
         return ItemStack(material).apply {
             if (itemMeta != null) {
                 val meta = itemMeta.apply {
-                    displayName(name.replaceInString(placeholders()).colorize())
-                    lore(rawLore.replaceInStringList(placeholders()).colorize())
+                    displayName(
+                        name.colorize()
+                            .replaceInComponent(placeholders())
+                    )
+
+                    lore(
+                        rawLore.colorize()
+                            .replaceInComponentList(placeholders())
+                    )
                 }
 
                 itemMeta = meta
