@@ -2,8 +2,10 @@ package dev.crafty.framework.data
 
 import dev.crafty.framework.data.serializers.ItemStackSerializer
 import dev.crafty.framework.data.serializers.UUIDSerializer
+import dev.crafty.framework.data.serializers.Vector3fSerializer
 import kotlinx.serialization.KSerializer
 import org.bukkit.inventory.ItemStack
+import org.joml.Vector3f
 import java.util.UUID
 import kotlin.reflect.KClass
 
@@ -26,5 +28,6 @@ object SerializerManager {
     init {
         registerSerializer(ItemStack::class, ItemStackSerializer)
         registerSerializer(UUID::class, UUIDSerializer)
+        registerSerializer(Vector3f::class, Vector3fSerializer)
     }
 }

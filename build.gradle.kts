@@ -43,6 +43,9 @@ dependencies {
     implementation("org.postgresql:postgresql:42.7.7")
 
     implementation("co.aikar:acf-paper:0.5.1-SNAPSHOT")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-protobuf:1.9.0")
+
 }
 
 tasks {
