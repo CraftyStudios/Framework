@@ -38,6 +38,7 @@ abstract class Menu(
 
     companion object {
         const val BASE_MENU_FOLDER = "menus"
+        val REMOVE_LINE_COMPONENT = Component.text("REMOVE_LINE")
     }
 
     private var currentInventory: Inventory? = null

@@ -1,5 +1,6 @@
 package dev.crafty.framework.lib
 
+import dev.crafty.framework.api.menu.Menu
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextComponent
 import net.kyori.adventure.text.format.TextDecoration
@@ -60,5 +61,16 @@ fun Component.replaceInComponent(placeholders: Map<String, Any>): Component {
     return result
 }
 
-fun List<Component>.replaceInComponentList(placeholders: Map<String, Any>): List<Component> =
-    this.map { it.replaceInComponent(placeholders) }
+fun List<Component>.replaceInComponentList(
+    placeholders: Map<String, Any>
+): List<Component> {
+    return this.mapNotNull { originalLine ->
+        val replaced = originalLine.replaceInComponent(placeholders)
+
+        if (replaced == Menu.REMOVE_LINE_COMPONENT) {
+            null
+        } else {
+            replaced
+        }
+    }
+}
