@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "dev.crafty"
-version = "1.0.8-SNAPSHOT"
+version = "1.0.16-SNAPSHOT"
 
 repositories {
     mavenCentral()

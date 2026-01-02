@@ -5,6 +5,8 @@ import dev.crafty.framework.api.lifecycle.FrameworkPlugin
 import dev.crafty.framework.api.logs.Logger
 import dev.crafty.framework.events.GlobalEventRouter
 import dev.crafty.framework.lib.colorize
+import dev.crafty.framework.lib.replaceInComponent
+import dev.crafty.framework.lib.replaceInComponentList
 import dev.crafty.framework.lib.replaceInString
 import dev.crafty.framework.lib.replaceInStringList
 import io.papermc.paper.registry.RegistryAccess
@@ -36,6 +38,7 @@ abstract class Menu(
 
     companion object {
         const val BASE_MENU_FOLDER = "menus"
+        val REMOVE_LINE_COMPONENT = Component.text("REMOVE_LINE")
     }
 
     private var currentInventory: Inventory? = null
@@ -57,7 +60,7 @@ abstract class Menu(
      * These placeholders will be replaced in the menu's title and items.
      * @return A map of placeholder keys to their corresponding values.
      */
-    protected abstract fun placeholders(): Map<String, Any>
+    protected abstract fun placeholders(): Map<String, Component>
 
     /**
      * Called when the menu is opened.
@@ -286,8 +289,15 @@ abstract class Menu(
         return ItemStack(material).apply {
             if (itemMeta != null) {
                 val meta = itemMeta.apply {
-                    displayName(name.replaceInString(placeholders()).colorize())
-                    lore(rawLore.replaceInStringList(placeholders()).colorize())
+                    displayName(
+                        name.colorize()
+                            .replaceInComponent(placeholders())
+                    )
+
+                    lore(
+                        rawLore.colorize()
+                            .replaceInComponentList(placeholders())
+                    )
                 }
 
                 itemMeta = meta

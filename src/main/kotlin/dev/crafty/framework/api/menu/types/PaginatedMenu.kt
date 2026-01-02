@@ -4,7 +4,9 @@ import dev.crafty.framework.api.menu.ClickAction
 import dev.crafty.framework.api.menu.Menu
 import dev.crafty.framework.api.tasks.now
 import dev.crafty.framework.lib.replaceInComponent
+import dev.crafty.framework.lib.replaceInComponentList
 import kotlinx.coroutines.*
+import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.configuration.ConfigurationSection
@@ -34,23 +36,15 @@ abstract class PaginatedMenu<T>(
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    /* =======================
-     *  Abstract API
-     * ======================= */
-
     abstract suspend fun data(): List<T>
 
-    abstract fun paginatedPlaceholders(): Map<String, (T) -> Any>
+    abstract fun paginatedPlaceholders(): Map<String, (T) -> Component>
 
     abstract fun materialProviders(): Map<String, (T) -> ItemStack>
 
-    abstract fun staticPlaceholders(): Map<String, Any>
+    abstract fun staticPlaceholders(): Map<String, Component>
 
-    final override fun placeholders(): Map<String, Any> = staticPlaceholders()
-
-    /* =======================
-     *  Entry point
-     * ======================= */
+    final override fun placeholders(): Map<String, Component> = staticPlaceholders()
 
     override fun open() {
         player.closeInventory()
@@ -68,10 +62,6 @@ abstract class PaginatedMenu<T>(
         // show loading menu immediately
         player.openInventory(buildMenu())
     }
-
-    /* =======================
-     *  Menu building
-     * ======================= */
 
     override fun preBuild(
         config: YamlConfiguration,
@@ -105,7 +95,7 @@ abstract class PaginatedMenu<T>(
                 ItemStack(Material.GRAY_STAINED_GLASS_PANE).apply {
                     itemMeta = itemMeta.apply {
                         displayName(
-                            net.kyori.adventure.text.Component.text("Loading...")
+                            Component.text("Loading...")
                         )
                     }
                 }
@@ -139,8 +129,15 @@ abstract class PaginatedMenu<T>(
         val item = base.first.clone().apply {
             val meta = itemMeta.apply {
                 val ph = paginatedPlaceholders().mapValues { it.value(dataItem) }
-                displayName(displayName()?.replaceInComponent(ph))
-                lore(lore()?.map { it.replaceInComponent(ph) })
+                displayName(
+                    displayName()
+                        ?.replaceInComponent(ph)
+                )
+
+                lore(
+                    lore()
+                        ?.replaceInComponentList(ph)
+                )
             }
             itemMeta = meta
 
@@ -174,10 +171,6 @@ abstract class PaginatedMenu<T>(
         return item to base.second
     }
 
-    /* =======================
-     *  Pagination
-     * ======================= */
-
     @ClickAction("next-page")
     fun nextPage(event: InventoryClickEvent) {
         if (loading) return
@@ -198,13 +191,13 @@ abstract class PaginatedMenu<T>(
         reloadAndRebuild(event.inventory)
     }
 
-    private fun reloadAndRebuild(inventory: Inventory) {
+    protected fun reloadAndRebuild(inventory: Inventory) {
         loading = true
 
         scope.launch {
             val result = runCatching { data() }.getOrDefault(emptyList())
 
-            withContext(Dispatchers.Main) {
+            now {
                 dataList = result
                 loading = false
                 rebuild(inventory)

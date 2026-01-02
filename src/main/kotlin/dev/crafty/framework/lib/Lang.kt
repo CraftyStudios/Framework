@@ -1,6 +1,8 @@
 package dev.crafty.framework.lib
 
+import dev.crafty.framework.api.menu.Menu
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.TextComponent
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver
@@ -12,6 +14,7 @@ val minimessage = MiniMessage.builder()
         TagResolver.builder()
                 .resolver(StandardTags.color())
                 .resolver(StandardTags.decorations())
+                .resolver(StandardTags.reset())
                 .build()
     )
     .build()
@@ -22,7 +25,6 @@ fun String.colorize(): Component =
 
 fun List<String>.colorize(): List<Component> =
     this.map { it.colorize() }
-
 
 operator fun Component.plus(other: Component): Component =
     this.append(other)
@@ -41,15 +43,44 @@ fun List<String>.replaceInStringList(placeholders: Map<String, Any>): List<Strin
 
 fun Component.replaceInComponent(placeholders: Map<String, Any>): Component {
     var result = this
+
     for ((key, value) in placeholders) {
         val literal = Pattern.quote("{$key}")
+
+        val replacement: Component = when (value) {
+            is Component -> value
+            is String -> minimessage.deserialize(value)
+            else -> Component.text(value.toString())
+        }
+
         result = result.replaceText {
             it.match(literal)
-                .replacement(value.toString())
+                .replacement(replacement)
         }
     }
+
     return result
 }
 
-fun List<Component>.replaceInComponentList(placeholders: Map<String, Any>): List<Component> =
-    this.map { it.replaceInComponent(placeholders) }
+fun List<Component>.replaceInComponentList(
+    placeholders: Map<String, Component>
+): List<Component> {
+    return this.mapNotNull { originalLine ->
+        val hasRemoveLine = placeholders.any { (key, value) ->
+            value.isRemoveLine() &&
+                    (originalLine as? TextComponent)?.content()?.contains("{$key}") == true
+        }
+
+        if (hasRemoveLine) {
+            null
+        } else {
+            originalLine.replaceInComponent(placeholders)
+        }
+    }
+}
+
+fun Component.isRemoveLine(): Boolean {
+    return this.children().isEmpty()
+            && this is TextComponent
+            && this.content() == "REMOVE_LINE"
+}
