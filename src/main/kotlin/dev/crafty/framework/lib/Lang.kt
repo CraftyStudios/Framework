@@ -45,7 +45,12 @@ fun Component.replaceInComponent(placeholders: Map<String, Any>): Component {
 
     for ((key, value) in placeholders) {
         val literal = Pattern.quote("{$key}")
-        val replacement = minimessage.deserialize(value.toString())
+
+        val replacement: Component = when (value) {
+            is Component -> value
+            is String -> minimessage.deserialize(value)
+            else -> Component.text(value.toString())
+        }
 
         result = result.replaceText {
             it.match(literal)

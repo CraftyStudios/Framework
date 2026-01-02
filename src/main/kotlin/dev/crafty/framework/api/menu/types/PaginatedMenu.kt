@@ -5,6 +5,7 @@ import dev.crafty.framework.api.menu.Menu
 import dev.crafty.framework.api.tasks.now
 import dev.crafty.framework.lib.replaceInComponent
 import kotlinx.coroutines.*
+import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.configuration.ConfigurationSection
@@ -36,13 +37,13 @@ abstract class PaginatedMenu<T>(
 
     abstract suspend fun data(): List<T>
 
-    abstract fun paginatedPlaceholders(): Map<String, (T) -> Any>
+    abstract fun paginatedPlaceholders(): Map<String, (T) -> Component>
 
     abstract fun materialProviders(): Map<String, (T) -> ItemStack>
 
-    abstract fun staticPlaceholders(): Map<String, Any>
+    abstract fun staticPlaceholders(): Map<String, Component>
 
-    final override fun placeholders(): Map<String, Any> = staticPlaceholders()
+    final override fun placeholders(): Map<String, Component> = staticPlaceholders()
 
     override fun open() {
         player.closeInventory()

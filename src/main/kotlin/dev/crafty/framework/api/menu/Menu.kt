@@ -57,7 +57,7 @@ abstract class Menu(
      * These placeholders will be replaced in the menu's title and items.
      * @return A map of placeholder keys to their corresponding values.
      */
-    protected abstract fun placeholders(): Map<String, Any>
+    protected abstract fun placeholders(): Map<String, Component>
 
     /**
      * Called when the menu is opened.
