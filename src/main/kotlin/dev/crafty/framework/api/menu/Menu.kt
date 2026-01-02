@@ -1,5 +1,6 @@
 package dev.crafty.framework.api.menu
 
+import PlayerSkullFactory
 import dev.crafty.framework.api.event.on
 import dev.crafty.framework.api.lifecycle.FrameworkPlugin
 import dev.crafty.framework.api.logs.Logger
@@ -8,7 +9,6 @@ import dev.crafty.framework.lib.colorize
 import dev.crafty.framework.lib.replaceInComponent
 import dev.crafty.framework.lib.replaceInComponentList
 import dev.crafty.framework.lib.replaceInString
-import dev.crafty.framework.lib.replaceInStringList
 import io.papermc.paper.registry.RegistryAccess
 import io.papermc.paper.registry.RegistryKey
 import net.kyori.adventure.text.Component
@@ -21,7 +21,6 @@ import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
 import org.bukkit.event.inventory.InventoryOpenEvent
 import org.bukkit.inventory.Inventory
-import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
@@ -270,6 +269,10 @@ abstract class Menu(
             Material.STONE
         }
 
+        val skullOwner = config.getOrDefault<String?>("skull-owner", null)
+        // replace placeholders in skull owner
+        val finalSkullOwner = skullOwner?.replaceInString(placeholders().mapValues { entry -> entry.value })
+
         val name = config.getOrDefault("name", "Item")
         val rawLore = config.getOrDefault("lore", emptyList<String>())
 
@@ -320,6 +323,10 @@ abstract class Menu(
                 addItemFlags(
                     ItemFlag.valueOf(flag.uppercase())
                 )
+            }
+
+            if (material == Material.PLAYER_HEAD && finalSkullOwner != null) {
+                PlayerSkullFactory.setSkull(this, finalSkullOwner)
             }
         } to listOfNotNull(
             rightClickActionIds?.let {

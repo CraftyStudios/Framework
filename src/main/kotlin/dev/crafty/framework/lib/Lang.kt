@@ -30,15 +30,15 @@ operator fun Component.plus(other: Component): Component =
     this.append(other)
 
 
-fun String.replaceInString(placeholders: Map<String, Any>): String {
+fun String.replaceInString(placeholders: Map<String, Component>): String {
     var result = this
     for ((key, value) in placeholders) {
-        result = result.replace("{$key}", value.toString())
+        result = result.replace("{$key}", value.text())
     }
     return result
 }
 
-fun List<String>.replaceInStringList(placeholders: Map<String, Any>): List<String> =
+fun List<String>.replaceInStringList(placeholders: Map<String, Component>): List<String> =
     this.map { it.replaceInString(placeholders) }
 
 fun Component.replaceInComponent(placeholders: Map<String, Any>): Component {
@@ -63,20 +63,33 @@ fun Component.replaceInComponent(placeholders: Map<String, Any>): Component {
 }
 
 fun List<Component>.replaceInComponentList(
-    placeholders: Map<String, Component>
+    placeholders: Map<String, Any>
 ): List<Component> {
     return this.mapNotNull { originalLine ->
-        val hasRemoveLine = placeholders.any { (key, value) ->
-            value.isRemoveLine() &&
-                    (originalLine as? TextComponent)?.content()?.contains("{$key}") == true
-        }
+        val replaced = originalLine.replaceInComponent(placeholders)
 
-        if (hasRemoveLine) {
+        if (replaced.containsRemoveLine()) {
             null
         } else {
-            originalLine.replaceInComponent(placeholders)
+            replaced
         }
     }
+}
+
+fun Component.text(): String {
+    if (this is TextComponent) {
+        return this.content()
+    }
+
+    return this.children().joinToString("") { it.text() }
+}
+
+fun Component.containsRemoveLine(): Boolean {
+    if (this is TextComponent && this.content() == "REMOVE_LINE") {
+        return true
+    }
+
+    return this.children().any { it.containsRemoveLine() }
 }
 
 fun Component.isRemoveLine(): Boolean {

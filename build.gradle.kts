@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "dev.crafty"
-version = "1.0.16-SNAPSHOT"
+version = "1.0.17-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -46,6 +46,8 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-protobuf:1.9.0")
 
+
+    compileOnly("com.mojang:authlib:3.13.56")
 }
 
 tasks {

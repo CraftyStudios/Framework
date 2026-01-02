@@ -1,13 +1,17 @@
 package dev.crafty.framework.api.menu.types
 
+import PlayerSkullFactory
 import dev.crafty.framework.api.menu.ClickAction
 import dev.crafty.framework.api.menu.Menu
 import dev.crafty.framework.api.tasks.now
 import dev.crafty.framework.lib.replaceInComponent
 import dev.crafty.framework.lib.replaceInComponentList
-import kotlinx.coroutines.*
+import dev.crafty.framework.lib.replaceInString
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import net.kyori.adventure.text.Component
-import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.configuration.file.YamlConfiguration
@@ -110,7 +114,6 @@ abstract class PaginatedMenu<T>(
         config: ConfigurationSection,
         slotIndex: Int
     ): Pair<ItemStack, List<MenuAction>> {
-
         val base = super.buildItem(config, slotIndex)
 
         if (loading) return base
@@ -125,6 +128,13 @@ abstract class PaginatedMenu<T>(
         val paginatedOptions = config.getConfigurationSection("paginated-options")
         val provideMaterial = paginatedOptions?.getBoolean("provide-material") ?: false
         val materialKey = paginatedOptions?.getString("material-key")
+
+        val skullOwner = config.getOrDefault<String?>("skull-owner", null)
+        val finalSkullOwner: String? = skullOwner?.replaceInString(staticPlaceholders())?.replaceInString(
+            paginatedPlaceholders().mapValues { it.value(dataItem) }
+        )
+
+        // rerunning for the paginated placeholders
 
         val item = base.first.clone().apply {
             val meta = itemMeta.apply {
@@ -165,6 +175,10 @@ abstract class PaginatedMenu<T>(
                     meta.addItemFlags(*providedMeta.itemFlags.toTypedArray())
                     itemMeta = meta
                 }
+            }
+
+            if (type == Material.PLAYER_HEAD && finalSkullOwner != null) {
+                PlayerSkullFactory.setSkull(this, finalSkullOwner)
             }
         }
 
