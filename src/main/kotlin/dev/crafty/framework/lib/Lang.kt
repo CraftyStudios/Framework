@@ -2,6 +2,7 @@ package dev.crafty.framework.lib
 
 import dev.crafty.framework.api.menu.Menu
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.TextComponent
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver
@@ -62,15 +63,24 @@ fun Component.replaceInComponent(placeholders: Map<String, Any>): Component {
 }
 
 fun List<Component>.replaceInComponentList(
-    placeholders: Map<String, Any>
+    placeholders: Map<String, Component>
 ): List<Component> {
     return this.mapNotNull { originalLine ->
-        val replaced = originalLine.replaceInComponent(placeholders)
+        val hasRemoveLine = placeholders.any { (key, value) ->
+            value.isRemoveLine() &&
+                    (originalLine as? TextComponent)?.content()?.contains("{$key}") == true
+        }
 
-        if (replaced == Menu.REMOVE_LINE_COMPONENT) {
+        if (hasRemoveLine) {
             null
         } else {
-            replaced
+            originalLine.replaceInComponent(placeholders)
         }
     }
+}
+
+fun Component.isRemoveLine(): Boolean {
+    return this.children().isEmpty()
+            && this is TextComponent
+            && this.content() == "REMOVE_LINE"
 }
