@@ -4,6 +4,7 @@ import dev.crafty.framework.api.menu.ClickAction
 import dev.crafty.framework.api.menu.Menu
 import dev.crafty.framework.api.tasks.now
 import dev.crafty.framework.lib.replaceInComponent
+import dev.crafty.framework.lib.replaceInComponentList
 import kotlinx.coroutines.*
 import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
@@ -135,7 +136,7 @@ abstract class PaginatedMenu<T>(
 
                 lore(
                     lore()
-                        ?.map { it.replaceInComponent(ph) }
+                        ?.replaceInComponentList(ph)
                 )
             }
             itemMeta = meta

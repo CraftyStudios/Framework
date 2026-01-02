@@ -2,7 +2,6 @@ package dev.crafty.framework.lib
 
 import dev.crafty.framework.api.menu.Menu
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.TextComponent
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver
@@ -14,6 +13,7 @@ val minimessage = MiniMessage.builder()
         TagResolver.builder()
                 .resolver(StandardTags.color())
                 .resolver(StandardTags.decorations())
+                .resolver(StandardTags.reset())
                 .build()
     )
     .build()
